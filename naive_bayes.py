@@ -6,9 +6,11 @@ import numpy as np
 import sys
 
 # to train the model, we need to compute all the prior probabilities of each class and the conditional probabilities of each attribute given each class.
-def train_naive_bayes(instances, attributes):
+def train_naive_bayes(instances, attributes, smoothing = 'laplace'):
 
     MIN_VARIANCE = 1.e-9
+    EPS = 1.e-9
+    LAPLACE_ALPHA = 1
 
     # get attribute values    
     x_vals = get_cardinal_attribute_vals(instances, attributes)
@@ -52,10 +54,14 @@ def train_naive_bayes(instances, attributes):
                 print(f"Unique val counts: {x_vals_unique_counts}")
                 count_y = len(all_attribute_vals)
                 
+                M = len(x_vals[attribute])
                 for x_val in x_vals[attribute]: 
                     Pxy[attribute][y][x_val] = 0.0                
                 for x_val in x_vals_unique_counts:
-                    Pxy[attribute][y][x_val] = x_vals_unique_counts[x_val]/count_y
+                    if(smoothing == 'epsilon'):
+                        Pxy[attribute][y][x_val] = max(EPS, x_vals_unique_counts[x_val]/count_y)
+                    elif(smoothing == 'laplace'):
+                        Pxy[attribute][y][x_val] = (x_vals_unique_counts[x_val] + LAPLACE_ALPHA)/(count_y + LAPLACE_ALPHA*M)
 
                 print(f"Attribute value relative frequencies: {Pxy[attribute][y]}")            
 
@@ -81,11 +87,13 @@ def predict_class(X, Py, Pxy_params, attributes, target_attribute_vals):
                 P_x_given_y = gaussian(X[i], Pxy_params[attribute][y]['mean'], Pxy_params[attribute][y]['variance']) 
                 p *= P_x_given_y
                 print(f"mean = {Pxy_params[attribute][y]['mean']}, variance = {Pxy_params[attribute][y]['variance']}")
-                print(f"P({attribute}={X[i]}|{y}) = {P_x_given_y}")
             
             elif(attributes[attribute] == 'cardinal'):
-                print("Cardinal attributes not yet implemented!")
-                return    
+                
+                P_x_given_y =  Pxy_params[attribute][y][X[i]]          
+                p *= P_x_given_y
+                
+            print(f"P({attribute}={X[i]}|{y}) = {P_x_given_y}") 
 
         Pxy[y] = p
         if (p > max_posterior):
