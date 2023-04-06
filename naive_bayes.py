@@ -8,9 +8,12 @@ import sys
 # to train the model, we need to compute all the prior probabilities of each class and the conditional probabilities of each attribute given each class.
 def train_naive_bayes(instances, attributes, smoothing = 'laplace'):
 
+    # smoothing parameters
     MIN_VARIANCE = 1.e-9
     EPS = 1.e-9
     LAPLACE_ALPHA = 1
+
+    print(f"Smoothing option: {smoothing}")
 
     # get attribute values    
     x_vals = get_cardinal_attribute_vals(instances, attributes)
@@ -34,10 +37,11 @@ def train_naive_bayes(instances, attributes, smoothing = 'laplace'):
             for y in y_vals:
                 Pxy[attribute][y] = {}
                 attribute_vals = [instance[i] for instance in instances if instance[-1] == y]
+                print(f"Attribute values for given class: {attribute_vals}")
                  # compute sample mean and variance of attribute values of instances belonging to this class
                 Pxy[attribute][y]['mean'] = sum(attribute_vals)/len(attribute_vals)
                 Pxy[attribute][y]['variance'] = max(MIN_VARIANCE, np.sqrt(sum([(val - Pxy[attribute][y]['mean'])**2 for val in attribute_vals])/len(attribute_vals)))
-
+                
             print(f"Attribute gaussian distribution parameters: {Pxy[attribute]}")                
 
         elif(attributes[attribute] == 'cardinal'):
@@ -56,12 +60,17 @@ def train_naive_bayes(instances, attributes, smoothing = 'laplace'):
                 
                 M = len(x_vals[attribute])
                 for x_val in x_vals[attribute]: 
-                    Pxy[attribute][y][x_val] = 0.0                
-                for x_val in x_vals_unique_counts:
-                    if(smoothing == 'epsilon'):
-                        Pxy[attribute][y][x_val] = max(EPS, x_vals_unique_counts[x_val]/count_y)
+                    if(x_val in x_vals_unique_counts):
+                        count_x_y = x_vals_unique_counts[x_val]    
+                    else:
+                        count_x_y = 0
+
+                    if(smoothing == None):
+                        Pxy[attribute][y][x_val] = count_x_y/count_y
+                    elif(smoothing == 'epsilon'):
+                        Pxy[attribute][y][x_val] = max(EPS, count_x_y/count_y)
                     elif(smoothing == 'laplace'):
-                        Pxy[attribute][y][x_val] = (x_vals_unique_counts[x_val] + LAPLACE_ALPHA)/(count_y + LAPLACE_ALPHA*M)
+                        Pxy[attribute][y][x_val] = (count_x_y + LAPLACE_ALPHA)/(count_y + LAPLACE_ALPHA*M)
 
                 print(f"Attribute value relative frequencies: {Pxy[attribute][y]}")            
 
@@ -155,11 +164,12 @@ training_instances = [ ['yes', 'single',   125, 'no' ],
 
 target_attribute_vals = get_y_vals(training_instances)[0]
 
-Py, Pxy_params = train_naive_bayes(training_instances, attributes)
+Py, Pxy_params = train_naive_bayes(training_instances, attributes, 'laplace')
 print("Naive Baye's model has been trained!")
 
 print(f"Class prior probabilities: {Py}")
-print(f"Conditional probability gaussian paramenets: {Pxy_params}")
+print(f"Conditional probability paramenets: {Pxy_params}")
 
 #test_instance = [0.8, 0.4, 37.8]
-#predict_class(test_instance, Py, Pxy_params, attributes, target_attribute_vals)
+test_instance = ['no', 'married', 120]
+predict_class(test_instance, Py, Pxy_params, attributes, target_attribute_vals)
