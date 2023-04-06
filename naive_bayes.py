@@ -7,6 +7,8 @@ import numpy as np
 # to train the model, we need to compute all the prior probabilities of each class and the conditional probabilities of each attribute given each class.
 def train_naive_bayes(instances, attributes):
 
+    MIN_VARIANCE = 1.e-9
+
     # compute class prior probabilities
     y_vals, counts = get_y_vals(instances)
 
@@ -26,7 +28,7 @@ def train_naive_bayes(instances, attributes):
                 attribute_vals = [instance[i] for instance in instances if instance[-1] == y]
                  # compute sample mean and variance of attribute values of instances belonging to this class
                 Pxy[attribute][y]['mean'] = sum(attribute_vals)/len(attribute_vals)
-                Pxy[attribute][y]['variance'] = np.sqrt(sum([(val - Pxy[attribute][y]['mean'])**2 for val in attribute_vals])/len(attribute_vals))
+                Pxy[attribute][y]['variance'] = max(MIN_VARIANCE, np.sqrt(sum([(val - Pxy[attribute][y]['mean'])**2 for val in attribute_vals])/len(attribute_vals)))
 
             #print(Pxy[attribute])                
 
@@ -81,7 +83,6 @@ def get_y_vals(instances):
 
 
 def gaussian(x, mu, sig):
-    sig += 1.e-9; # add a small constant to sigma to avoid division by zero
     g = min(np.exp(-0.5* ((x-mu)/sig)**2) / (np.sqrt(2*np.pi)*sig), 1.0)
     return g
 
